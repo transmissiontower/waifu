@@ -1,0 +1,6 @@
+grpcio>=1.60
+grpcio-tools>=1.60
+f5-tts>=1.1.0
+numpy
+# torch/torchaudio: install the CUDA build first, e.g.
+#   pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu124

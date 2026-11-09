@@ -1,0 +1,35 @@
+syntax = "proto3";
+package waifu.v1;
+import "common.proto";
+
+// Contract for the language-model service. Streams tokens.
+service Llm {
+  rpc Chat(ChatRequest) returns (stream ChatToken);
+  rpc Embed(EmbedRequest) returns (EmbedResponse);
+  rpc Info(Empty) returns (LlmInfo);
+}
+
+message ChatRequest {
+  repeated ChatMessage messages = 1;
+  float temperature = 2;   // 0 = provider default
+  uint32 max_tokens = 3;   // 0 = provider default
+  string model = 4;        // empty = service default
+}
+
+message ChatToken {
+  string text = 1;
+  bool done = 2;
+  string provider = 3;     // which backend produced it ("ollama", "openai", "fallback")
+  string notice = 4;       // human readable degradation notice (non-empty => show to user)
+}
+
+message EmbedRequest { repeated string inputs = 1; }
+message Vector { repeated float values = 1; }
+message EmbedResponse { repeated Vector vectors = 1; string model = 2; }
+
+message LlmInfo {
+  string active_provider = 1;
+  string model = 2;
+  repeated string providers = 3;
+  bool primary_healthy = 4;
+}

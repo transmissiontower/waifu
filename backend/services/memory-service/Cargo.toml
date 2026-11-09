@@ -1,0 +1,18 @@
+[package]
+name = "memory-service"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+common.workspace = true
+contracts.workspace = true
+tokio.workspace = true
+tokio-stream.workspace = true
+tonic.workspace = true
+rusqlite.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+anyhow.workspace = true
+regex.workspace = true

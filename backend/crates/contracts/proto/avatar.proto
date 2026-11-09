@@ -1,0 +1,24 @@
+syntax = "proto3";
+package waifu.v1;
+import "common.proto";
+
+service Avatar {
+  rpc Publish(AvatarEvent) returns (Ack);
+  rpc Subscribe(Empty) returns (stream AvatarEvent);
+}
+
+message AvatarEvent {
+  string trace_id = 1;
+  oneof kind {
+    EmotionEvent emotion = 2;
+    StateEvent state = 3;
+    LipsyncEvent lipsync = 4;
+    AnimationEvent animation = 5;
+  }
+}
+message EmotionEvent { string name = 1; float intensity = 2; }
+// state: idle | listening | thinking | speaking
+message StateEvent { string state = 1; }
+// Mouth-openness envelope (0..255 per frame), starting `start_ms` after the event is received.
+message LipsyncEvent { uint32 start_ms = 1; uint32 fps = 2; bytes mouth = 3; }
+message AnimationEvent { string name = 1; }  // nod | tilt | wave | blink ...

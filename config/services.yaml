@@ -1,0 +1,139 @@
+# ───────────────────────────────────────────────────────────────────────────────
+# Waifu - service wiring: ports, binaries, defaults. Every service is addressed ONLY through this file.
+#
+#   Day-to-day choices (LLM model, voice, avatar, persona, TTS engine...) do NOT belong here:
+#   put them in config/settings.yaml - it is laid over this file and wins.
+#
+# To replace a service with your own (any language) that implements the same .proto contract:
+#     impl: external
+#     addr: 127.0.0.1:60001        # where YOUR service listens (gRPC)
+#     command: ["python", "my_tts.py"]   # optional: let the supervisor launch & restart it
+# No rebuild needed. See docs/CUSTOM_SERVICE.md and backend/engines/template-python/.
+# ───────────────────────────────────────────────────────────────────────────────
+global:
+  log_level: info            # trace | debug | info | warn | error   (RUST_LOG overrides)
+  bus: inprocess             # inprocess | nats   (nats needs --features nats and a NATS server)
+  nats_url: nats://127.0.0.1:4222
+  models_dir: assets/models     # whisper ggml models
+  avatars_dir: assets/avatars   # .vrm files
+  voices_dir: assets/voices     # voice folders (ref.wav for Chatterbox/F5, a Piper/Kokoro model for the builtin engine)
+  personas_dir: config/personas # character files; settings.yaml `persona: <name>` picks <name>.yaml from here
+  data_dir: data                # runtime state: sqlite memory, boot status
+  default_user: default
+
+services:
+  gateway:
+    name: axum-gateway
+    addr: 127.0.0.1:8080       # PUBLIC http address (the only port you open in the browser)
+    depends_on: [orchestrator]
+    settings:
+      static_dir: frontend/dist
+
+  orchestrator:
+    name: pipeline
+    addr: 127.0.0.1:50051
+    http: 127.0.0.1:9101
+    depends_on: [llm, memory, persona, tts, stt, avatar]
+    settings:
+      history_messages: 16
+      recall_top_k: 4
+      user_name: ""            # how she addresses you (also learned from conversation)
+      fallback_persona_name: Mio
+      tts_open_s: 30           # F5 replies after the first clause is generated
+      memory_ms: 400          # a slow memory lookup must not delay the reply (one short attempt, no retry)
+      persona_ms: 300
+
+  llm:
+    name: ollama                # informational label
+    bin: llm-service
+    addr: 127.0.0.1:50052
+    http: 127.0.0.1:9102
+    settings:
+      # Tried in order; "fallback" is a tiny built-in brain so she still answers if the model is down.
+      providers: [ollama, fallback]
+      temperature: 0.8
+      max_tokens: 160
+      ollama:
+        base_url: http://127.0.0.1:11434
+        model: auto             # auto = first installed of model_candidates (WAIFU_LLM_MODEL env overrides)
+        model_candidates: ["gemma3:4b", "qwen2.5:7b", "qwen2.5:3b", "qwen2.5:1.5b", "llama3.2:3b", "llama3.2:1b"]
+        embed_model: nomic-embed-text
+      openai:                   # use with providers: [openai, fallback]  (LM Studio, llama.cpp server, vLLM, OpenAI...)
+        base_url: http://127.0.0.1:1234/v1
+        model: local-model
+        api_key_env: OPENAI_API_KEY   # name of an env var; leave unset for local servers
+      breaker: { threshold: 2, cooldown_s: 15 }
+
+  stt:
+    name: whisper-rs
+    bin: stt-service
+    addr: 127.0.0.1:50053
+    http: 127.0.0.1:9103
+    settings:
+      model: ggml-base.en.bin   # file in models_dir (WAIFU_STT_MODEL env overrides)
+      language: en
+      threads: 4
+
+  tts:
+    # Default engine = Chatterbox Turbo. Switch with `tts.engine` in settings.yaml (see `tts_engines` below).
+    impl: external
+    name: chatterbox-turbo
+    addr: 127.0.0.1:60001
+    command: ["python", "backend/engines/chatterbox-tts/chatterbox_tts_service.py", "--addr", "127.0.0.1:60001"]
+    # voices: assets/voices/<name>/ref.wav (clean speech, 8-12 s, MORE than 5 s); no ref.wav -> built-in voice
+    startup_timeout_s: 120
+
+  memory:
+    name: sqlite-hash-embeddings
+    bin: memory-service
+    addr: 127.0.0.1:50055
+    http: 127.0.0.1:9105
+    depends_on: [llm]
+    settings:
+      embedder: hash            # hash (local, no download) | llm (semantic, via Ollama nomic-embed-text)
+      summarize_after: 30       # summarize when this many unsummarized messages pile up
+      keep_recent: 10
+      extract_with_llm: true
+
+  persona:
+    name: yaml-persona
+    bin: persona-service
+    addr: 127.0.0.1:50056
+    http: 127.0.0.1:9106
+    settings:
+      persona_file: config/personas/mio.yaml   # normally set via `persona:` in settings.yaml
+
+  avatar:
+    name: avatar-hub
+    bin: avatar-service
+    addr: 127.0.0.1:50057
+    http: 127.0.0.1:9107
+    settings:
+      vtube_studio:             # optional bridge to VTube Studio (Plugins API must be enabled there)
+        enabled: false
+        url: ws://127.0.0.1:8001
+        mouth_parameter: MouthOpen
+        emotion_hotkeys:        # emotion -> VTube Studio hotkey name
+          happy: Smile
+          sad: Sad
+          angry: Angry
+          surprised: Surprised
+          shy: Blush
+
+# Selectable TTS engines. settings.yaml `tts.engine: <key>` merges the chosen entry over services.tts.
+# `{addr}` in a command is replaced with services.tts.addr. Add your own engine here and select it by name.
+tts_engines:
+  chatterbox:
+    impl: external
+    name: chatterbox-turbo
+    command: ["python", "backend/engines/chatterbox-tts/chatterbox_tts_service.py", "--addr", "{addr}"]
+    startup_timeout_s: 120
+  f5:
+    impl: external
+    name: f5-tts
+    command: ["python", "backend/engines/f5-tts/f5_tts_service.py", "--addr", "{addr}"]
+    startup_timeout_s: 120
+  piper:                      # builtin Rust binary (sherpa-onnx): Piper / Kokoro voice folders, no Python needed
+    impl: builtin
+    name: piper-sherpa
+    bin: tts-service

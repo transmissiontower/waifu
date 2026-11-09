@@ -1,0 +1,17 @@
+syntax = "proto3";
+package waifu.v1;
+import "common.proto";
+
+service Tts {
+  // Streams PCM16 audio chunks for the text.
+  rpc Synthesize(SynthRequest) returns (stream AudioChunk);
+  rpc ListVoices(Empty) returns (VoiceList);
+}
+
+message SynthRequest {
+  string text = 1;
+  string voice = 2;     // voice directory name in /voices, empty = default
+  float speed = 3;      // 1.0 = normal, 0 = default
+  string emotion = 4;   // optional hint
+}
+message VoiceList { repeated string voices = 1; string default_voice = 2; string engine = 3; }

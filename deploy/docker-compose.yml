@@ -1,0 +1,25 @@
+# Optional. The native launchers (run.sh / run.bat) need no Docker.
+#   (cd frontend && npm install && npm run build)                 # once: the image serves frontend/dist
+#   docker compose -f deploy/docker-compose.yml up --build        then open http://localhost:8080
+# NOTE: browsers only allow the microphone on https:// or http://localhost - use localhost (not a LAN IP).
+services:
+  ollama:
+    image: ollama/ollama:latest
+    volumes: [ollama:/root/.ollama]
+    # NVIDIA GPU: uncomment
+    # deploy: { resources: { reservations: { devices: [{ driver: nvidia, count: all, capabilities: [gpu] }] } } }
+  waifu:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    depends_on: [ollama]
+    ports: ["127.0.0.1:8080:8080"]
+    volumes:
+      - ../data:/app/data           # memory database
+      - ../assets:/app/assets       # models, voices, avatars
+      - ../config:/app/config       # settings.yaml, services.yaml, personas (persona files are hot-reloaded from the host)
+    environment:
+      WAIFU_OLLAMA_URL: http://ollama:11434
+      WAIFU_ADDR_GATEWAY: 0.0.0.0:8080   # listen on all interfaces inside the container
+volumes:
+  ollama:

@@ -1,0 +1,23 @@
+/target
+/data
+/frontend/node_modules
+/frontend/dist
+
+# user assets (kept out of git; each folder has a README)
+/assets/models/*
+!/assets/models/README.md
+/assets/voices/*
+!/assets/voices/README.md
+Seed-san.vrm
+
+# python
+__pycache__/
+.venv/
+.venv-chatterbox/
+/backend/engines/template-python/_gen
+
+# misc
+*.part
+rustup-init.exe
+.DS_Store
+._*

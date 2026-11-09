@@ -1,0 +1,19 @@
+syntax = "proto3";
+package waifu.v1;
+
+message Empty {}
+message Ack { bool ok = 1; string message = 2; }
+
+// Raw PCM16 little-endian audio.
+message AudioChunk {
+  bytes pcm16 = 1;
+  uint32 sample_rate = 2;
+  uint32 channels = 3;
+  uint32 seq = 4;
+  bool last = 5;
+}
+
+message ChatMessage {
+  string role = 1;     // "system" | "user" | "assistant"
+  string content = 2;
+}

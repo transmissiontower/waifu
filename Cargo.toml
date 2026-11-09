@@ -1,0 +1,64 @@
+[workspace]
+resolver = "2"
+members = [
+  "backend/crates/contracts",
+  "backend/crates/common",
+  "backend/services/persona-service",
+  "backend/tools/supervisor",
+  "backend/tools/launcher",
+  "backend/e2e",
+  "backend/services/gateway",
+  "backend/services/orchestrator",
+  "backend/services/stt-service",
+  "backend/services/tts-service",
+  "backend/services/memory-service",
+  "backend/services/llm-service",
+  "backend/services/avatar-service",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+rust-version = "1.82"
+
+[workspace.dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "signal", "net", "io-util", "process", "fs"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
+tokio-util = "0.7"
+futures = "0.3"
+async-stream = "0.3"
+axum = { version = "0.7", features = ["ws", "macros"] }
+tower-http = { version = "0.5", features = ["fs", "cors", "trace"] }
+tonic = "0.12"
+prost = "0.13"
+tonic-build = "0.12"
+protoc-bin-vendored = "3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+anyhow = "1"
+thiserror = "1"
+uuid = { version = "1", features = ["v4"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
+bytes = "1"
+async-nats = "0.37"
+tokio-tungstenite = "0.24"
+base64 = "0.22"
+rand = "0.8"
+regex = "1"
+
+contracts = { path = "backend/crates/contracts" }
+common = { path = "backend/crates/common" }
+
+[profile.dev]
+debug = 0
+
+[profile.release]
+opt-level = 3
+codegen-units = 16
+lto = false
+strip = true

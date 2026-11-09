@@ -1,0 +1,9 @@
+[package]
+name = "launcher"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Dependency-free loading-screen server: alive while everything else is still compiling"
+
+# deliberately NO dependencies: it must build in about a second, before the real build starts
+[dependencies]

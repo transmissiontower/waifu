@@ -1,0 +1,35 @@
+syntax = "proto3";
+package waifu.v1;
+import "common.proto";
+
+// Conversation pipeline. One bidirectional stream per connected client session.
+service Orchestrator {
+  rpc Converse(stream ClientEvent) returns (stream ServerEvent);
+}
+
+message ClientEvent {
+  oneof kind {
+    Hello hello = 1;
+    string user_text = 2;
+    AudioChunk user_audio = 3;   // 16 kHz PCM16 mono
+    Empty audio_end = 4;         // end of utterance -> run STT
+    Empty interrupt = 5;         // barge-in: stop speaking / generating
+  }
+}
+message Hello { string user_id = 1; string user_name = 2; bool greet = 3; }
+
+message ServerEvent {
+  string trace_id = 1;
+  oneof kind {
+    TranscriptEvent transcript = 2;
+    string assistant_delta = 3;  // clean text (no emotion tags)
+    AudioChunk audio = 4;
+    EmotionOut emotion = 5;
+    string state = 6;            // idle | listening | thinking | speaking
+    Notice notice = 7;
+    Empty turn_done = 8;
+  }
+}
+message TranscriptEvent { string text = 1; bool final = 2; }
+message EmotionOut { string name = 1; float intensity = 2; }
+message Notice { string level = 1; string message = 2; }  // info | warn | error

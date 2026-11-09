@@ -1,0 +1,20 @@
+[package]
+name = "e2e"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dev-dependencies]
+common.workspace = true
+contracts.workspace = true
+tokio.workspace = true
+tokio-stream.workspace = true
+futures.workspace = true
+axum.workspace = true
+tonic.workspace = true
+reqwest.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
+tokio-tungstenite.workspace = true
+anyhow.workspace = true

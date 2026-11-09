@@ -1,0 +1,19 @@
+{
+  "name": "waifu-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "build": "tsc --noEmit && node build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test test/vad.test.ts"
+  },
+  "dependencies": {
+    "@pixiv/three-vrm": "^3.1.0",
+    "three": "^0.169.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.169.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.0"
+  }
+}

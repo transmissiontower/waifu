@@ -1,0 +1,76 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+#  settings.yaml - the ONE file you edit to change model, voice, avatar, persona...
+#
+#  • Every key is optional. A missing (or empty) key = "use the default from
+#    config/services.yaml / the persona file".
+#  • Typos are caught on start: an unknown key stops the app with a clear message.
+#  • Changes apply on the next start (./run.sh). Exception: the persona FILE itself
+#    (config/personas/<name>.yaml) is hot-reloaded while the app runs.
+#  • Order of precedence:  env vars (WAIFU_*)  >  settings.yaml  >  services.yaml / persona.yaml
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ── Who she is ────────────────────────────────────────────────────────────────
+persona: mio                # config/personas/<name>.yaml   (or a path to any .yaml file)
+user_name: ""               # how she addresses you (she also learns it from conversation)
+
+# ── Brain (LLM) ───────────────────────────────────────────────────────────────
+llm:
+  provider: ollama          # ollama | openai   (openai = ANY OpenAI-compatible server: LM Studio, llama.cpp, vLLM, OpenAI...)
+  model: gemma3:4b          # model of the chosen provider. Ollama: `ollama pull <model>` first.
+                            #   "auto" (Ollama only) = first installed of model_candidates in services.yaml
+                            #   try: gemma3:12b · gemma3:4b · qwen2.5:7b · llama3.2:3b
+  fallback_brain: true      # keep the tiny built-in brain as a last resort so she never goes mute
+  temperature: 0.8
+  max_tokens: 160           # reply length cap (she is spoken aloud, so keep it short)
+  ollama_url: http://127.0.0.1:11434
+  embed_model: nomic-embed-text      # used when memory.embedder is "llm"
+  # --- only for provider: openai ---
+  # openai_base_url: http://127.0.0.1:1234/v1
+  # openai_api_key_env: OPENAI_API_KEY   # NAME of the env var that holds the key (never put the key here)
+
+# ── Ears (speech recognition, whisper.cpp) ────────────────────────────────────
+stt:
+  enabled: true
+  model: auto               # file in assets/models/. auto = the one scripts/download-models picked for your hardware.
+                            #   e.g. ggml-tiny.en.bin · ggml-base.en.bin · ggml-small.en.bin · ggml-small.bin (multilingual)
+  language: en              # en | ru | ja | ...   (multilingual models only; *.en.bin models are English-only)
+  threads: 4
+
+# ── Voice (text-to-speech) ────────────────────────────────────────────────────
+tts:
+  enabled: true
+  engine: chatterbox        # chatterbox | f5 | piper     (engines are defined in services.yaml -> tts_engines)
+  voice: ""                 # folder name in assets/voices/. Empty = the persona's own `voice:` line.
+  device: auto              # auto | cpu | cuda | mps     (chatterbox / f5)
+  # python: python3         # interpreter for the Python engines (a venv path also works)
+  # speed: 1.0              # piper only
+
+# ── Body (avatar) ─────────────────────────────────────────────────────────────
+avatar:
+  file: ""                  # .vrm in assets/avatars/. Empty = the persona's own `avatar:` line.
+  vtube_studio:             # optional bridge to VTube Studio (enable its Plugins API; approve the popup on first connect)
+    enabled: false
+    url: ws://127.0.0.1:8001
+
+# ── Memory ────────────────────────────────────────────────────────────────────
+memory:
+  enabled: true
+  embedder: hash            # hash = local, instant, keyword-ish | llm = semantic via Ollama embeddings
+  summarize_after: 30       # summarise when this many unsummarised messages pile up
+  keep_recent: 10
+  extract_with_llm: true    # learn facts about you with a 2nd LLM call (runs only while you are quiet)
+
+# ── Internet (web search) ─────────────────────────────────────────────────────
+# Lets her look things up (news, weather, scores, "google X"). Gemma has no tool calling, so the app
+# searches for her and hands her the snippets for that one reply. Normal chat is never slowed down.
+web_search:
+  enabled: true
+  provider: duckduckgo      # duckduckgo = no setup (your query is sent to DuckDuckGo)
+                            # searxng    = your own self-hosted instance, nothing leaves your network
+  # searxng_url: http://127.0.0.1:8888   # only for provider: searxng (enable `json` in its search.formats)
+  mode: auto                # auto = only when the message needs fresh info | always = every message
+  max_results: 4            # fewer = faster reply
+  timeout_ms: 2500          # hard cap; on timeout she just answers without it
+
+# ── Misc ──────────────────────────────────────────────────────────────────────
+log_level: info             # trace | debug | info | warn | error   (RUST_LOG overrides)

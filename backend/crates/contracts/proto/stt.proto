@@ -1,0 +1,15 @@
+syntax = "proto3";
+package waifu.v1;
+import "common.proto";
+
+service Stt {
+  // pcm16 mono 16 kHz in, text out.
+  rpc Transcribe(TranscribeRequest) returns (Transcript);
+}
+
+message TranscribeRequest {
+  bytes pcm16 = 1;
+  uint32 sample_rate = 2;  // normally 16000
+  string language = 3;     // "" = auto / service default
+}
+message Transcript { string text = 1; string language = 2; float duration_s = 3; }

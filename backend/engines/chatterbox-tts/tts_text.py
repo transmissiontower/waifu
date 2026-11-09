@@ -4,13 +4,35 @@
 * split_clauses   - cut long text into clauses of at most N chars (at commas etc.)
 * split_first     - cut a SHORT head off the text so the first audio can start after generating only a few words
 * plan_clauses    - combine the two
+* chatterbox_emotion_tag - map Waifu avatar emotions to Chatterbox Turbo delivery tags
 * TicketLock      - a FIFO mutex (threading.Lock does not guarantee arrival order)
 """
 import re
 import threading
 
-_NOISE = re.compile(r"[*_`#~]|[\U0001F000-\U0001FFFF\u2600-\u27BF]")
-_CLAUSE_END = re.compile(r"[,;:—]\s")
+_NOISE = re.compile(r"[*_`#~]|[\\U0001F000-\\U0001FFFF\\u2600-\\u27BF]")
+_CLAUSE_END = re.compile(r"[,;:—]\\s")
+
+# Chatterbox Turbo's native paralinguistic delivery tags. Unknown/neutral emotions
+# intentionally produce no tag, so they never leak into the spoken words.
+_EMOTION_TAGS = {
+    "happy": "happy",
+    "sad": "crying",
+    "angry": "angry",
+    "surprised": "surprised",
+    "shy": "whispering",
+    "thinking": "narration",
+    "smug": "sarcastic",
+    "fear": "fear",
+    "fearful": "fear",
+    "dramatic": "dramatic",
+}
+
+
+def chatterbox_emotion_tag(emotion: str) -> str:
+    """Return a supported Chatterbox Turbo tag for a Waifu emotion, or ''."""
+    tag = _EMOTION_TAGS.get((emotion or "").strip().lower())
+    return f"[{tag}]" if tag else ""
 
 
 def clean_text(t: str) -> str:
@@ -21,7 +43,7 @@ def split_clauses(text: str, max_chars: int):
     if len(text) <= max_chars:
         return [text]
     parts, cur = [], ""
-    for tok in re.split(r"(?<=[,;:—])\s+", text):
+    for tok in re.split(r"(?<=[,;:—])\\s+", text):
         if cur and len(cur) + len(tok) + 1 > max_chars:
             parts.append(cur)
             cur = tok
@@ -30,7 +52,7 @@ def split_clauses(text: str, max_chars: int):
     if cur:
         parts.append(cur)
     if len(parts) > 1 and len(parts[-1]) < 12:
-        # NB: pop first. (`parts[-2] = f"{parts[-2]} {parts.pop()}"` assigns AFTER the pop, i.e. to the wrong
+        # NB: pop first. (`parts[-2] = f"{parts[-2]} {parts.pop()}` assigns AFTER the pop, i.e. to the wrong
         # element - it dropped text, or raised IndexError for exactly two parts.)
         tail = parts.pop()
         parts[-1] = f"{parts[-1]} {tail}"
